@@ -1,0 +1,104 @@
+{
+  "General": {
+    "OrganizationName": "Your Organization",
+    "ReportOutputPath": ".\\reports",
+    "BackupOutputPath": ".\\backups",
+    "LogOutputPath": ".\\logs",
+    "CreateRestorePoint": true,
+    "RebootAfterHardening": false
+  },
+
+  "SMB": {
+    "DisableSMBv1": true,
+    "DisableSMBv2Compression": true,
+    "EnableSMBSigning": true,
+    "EnableSMBEncryption": true
+  },
+
+  "NTLM": {
+    "NTLMv2Level": 5,
+    "RestrictNTLM": true,
+    "DisableLMHash": true
+  },
+
+  "PasswordPolicy": {
+    "MinimumPasswordLength": 14,
+    "MaximumPasswordAge": 90,
+    "MinimumPasswordAge": 1,
+    "PasswordHistoryCount": 24,
+    "ComplexityEnabled": true,
+    "ReversibleEncryption": false
+  },
+
+  "AccountLockout": {
+    "LockoutThreshold": 5,
+    "LockoutDuration": 30,
+    "ObservationWindow": 30
+  },
+
+  "AuditPolicy": {
+    "AuditLogonEvents": true,
+    "AuditAccountLogon": true,
+    "AuditAccountManagement": true,
+    "AuditPolicyChange": true,
+    "AuditPrivilegeUse": true,
+    "AuditObjectAccess": true,
+    "AuditSystemEvents": true,
+    "AuditProcessTracking": false
+  },
+
+  "EventLog": {
+    "SecurityLogMaxSizeMB": 512,
+    "SystemLogMaxSizeMB": 128,
+    "ApplicationLogMaxSizeMB": 128,
+    "RetentionDays": 90
+  },
+
+  "Services": {
+    "DisableServices": [
+      "Browser",
+      "IISADMIN",
+      "Messenger",
+      "RemoteRegistry",
+      "RasAuto",
+      "TlntSvr",
+      "SNMP",
+      "WMSvc",
+      "XblAuthManager",
+      "XblGameSave",
+      "XboxGipSvc",
+      "XboxNetApiSvc",
+      "lfsvc",
+      "MapsBroker",
+      "WerSvc"
+    ]
+  },
+
+  "Firewall": {
+    "EnableFirewall": true,
+    "BlockInboundByDefault": true,
+    "AllowICMPv4": true,
+    "AllowRDP": true,
+    "RDPAllowedSubnet": "10.0.0.0/8",
+    "BlockTelnet": true,
+    "BlockFTP": true
+  },
+
+  "Registry": {
+    "DisableAutorun": true,
+    "DisableRemoteDesktopClipboard": false,
+    "HideLastLoggedOnUser": true,
+    "LegalNotice": true,
+    "LegalNoticeText": "AUTHORIZED ACCESS ONLY. All activity is monitored and logged.",
+    "DisableWDigestAuthentication": true,
+    "EnableStructuredExceptionHandlingOverwrite": true,
+    "EnableDataExecutionPrevention": true
+  },
+
+  "WindowsUpdate": {
+    "EnableAutomaticUpdates": true,
+    "AutoInstallMinorUpdates": true,
+    "ScheduledInstallDay": 0,
+    "ScheduledInstallTime": 3
+  }
+}
