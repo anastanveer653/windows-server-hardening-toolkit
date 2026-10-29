@@ -1,0 +1,26 @@
+{
+  "Name": "MemberServer",
+  "Description": "Baseline for domain-joined and standalone member servers. Aligned with CIS Level 1 recommendations; disruptive settings are opt-in.",
+  "EnableControls": [],
+  "ExcludeControls": [],
+  "AuditOnlyControls": [],
+  "Parameters": {
+    "MinimumPasswordLength": 14,
+    "PasswordHistorySize": 24,
+    "MaximumPasswordAge": 365,
+    "MinimumPasswordAge": 1,
+    "LockoutThreshold": 5,
+    "LockoutDuration": 15,
+    "ResetLockoutCount": 15,
+    "InactivityTimeoutSeconds": 900,
+    "LegalNoticeCaption": "Authorized use only",
+    "LegalNoticeText": "This system is for authorized use only. All activity is monitored and logged.",
+    "SecurityLogMaxSizeKB": 196608,
+    "ApplicationLogMaxSizeKB": 32768,
+    "SystemLogMaxSizeKB": 32768,
+    "FirewallLogMaxSizeKB": 16384,
+    "ScheduledInstallDay": 0,
+    "MaxDaysSinceLastUpdate": 35,
+    "SkipPendingUpdateScan": false
+  }
+}

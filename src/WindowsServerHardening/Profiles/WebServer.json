@@ -1,0 +1,16 @@
+{
+  "Name": "WebServer",
+  "Extends": "MemberServer",
+  "Description": "Internet-facing IIS or application servers. Enforces modern TLS only and keeps FTP reachable for servers that host FTP sites.",
+  "EnableControls": [
+    "NET-007",
+    "NET-008"
+  ],
+  "ExcludeControls": [
+    "FW-006"
+  ],
+  "AuditOnlyControls": [],
+  "Parameters": {
+    "InactivityTimeoutSeconds": 600
+  }
+}

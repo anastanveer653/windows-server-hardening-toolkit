@@ -1,244 +1,322 @@
-#Requires -RunAsAdministrator
-#Requires -Version 5.1
-
 <#
 .SYNOPSIS
-    Windows Server Hardening Toolkit — Main Entry Point
+    Command line front end for the Windows Server Hardening Toolkit.
 
 .DESCRIPTION
-    Applies CIS Benchmark-aligned security hardening to Windows Server 2016/2019/2022.
-    Covers SMB, NTLM, Audit Policy, Firewall, Services, Registry, and more.
-    Generates a full HTML report and creates backups before every change.
+    Audits, hardens or rolls back a Windows Server using the WindowsServerHardening module.
+    The default mode is a read-only audit. Every hardening run records the previous value of
+    each changed setting so the session can be rolled back with -Mode Rollback.
 
-.PARAMETER ConfigPath
-    Path to the JSON configuration file. Defaults to .\config\hardening-config.json
+    Exit codes (for schedulers, RMM tools and CI pipelines):
+      0  All evaluated controls are compliant (or the rollback succeeded).
+      1  Non-compliant controls or control errors were found (or a rollback step failed).
+      2  The run itself failed (invalid parameters, missing rights, remote connection errors).
+
+.PARAMETER Mode
+    Audit (default, read-only), Harden (apply the profile) or Rollback (undo a hardening session).
+
+.PARAMETER ProfileName
+    Built-in profile: Auto (default), MemberServer, DomainController or WebServer.
+
+.PARAMETER ProfilePath
+    Path to a custom JSON profile.
+
+.PARAMETER Category
+    Limit the run to these categories, for example SMB, Authentication, Firewall.
+
+.PARAMETER ControlId
+    Limit the run to these control IDs. Wildcards are supported, for example 'SMB-*'.
+
+.PARAMETER ExcludeControlId
+    Skip these control IDs. Wildcards are supported.
+
+.PARAMETER SessionId
+    Rollback mode only: the hardening session to roll back. Defaults to the latest one.
+
+.PARAMETER OutputPath
+    Root folder for logs, reports and rollback data. Defaults to %ProgramData%\WindowsServerHardening.
+
+.PARAMETER ReportFormat
+    Report formats to write: Html, Json, Csv. Defaults to all three.
+
+.PARAMETER ComputerName
+    Audit mode only: remote servers to audit over PowerShell remoting.
+
+.PARAMETER Credential
+    Credential for remote audits.
+
+.PARAMETER Force
+    Harden or roll back without confirmation prompts.
 
 .PARAMETER ReportOnly
-    Run in audit mode only — assess the current state without making any changes.
-
-.PARAMETER Modules
-    Comma-separated list of modules to run. Runs all if not specified.
-    Valid values: SMB, NTLM, AuditPolicy, Firewall, Services, AccountPolicy, Registry, WindowsUpdate
+    Deprecated (v1). Equivalent to -Mode Audit.
 
 .PARAMETER Rollback
-    Roll back all changes using the most recent backup.
+    Deprecated (v1). Equivalent to -Mode Rollback.
+
+.PARAMETER Modules
+    Deprecated (v1). Comma separated v1 module names, mapped to categories.
 
 .EXAMPLE
-    # Full hardening with all modules
     .\Harden-WindowsServer.ps1
 
-    # Audit only — no changes made
-    .\Harden-WindowsServer.ps1 -ReportOnly
+    Audits the local server with the automatically selected profile and writes HTML, JSON and CSV reports.
 
-    # Run specific modules only
-    .\Harden-WindowsServer.ps1 -Modules "SMB,NTLM,Firewall"
+.EXAMPLE
+    .\Harden-WindowsServer.ps1 -Mode Harden -WhatIf
 
-    # Roll back last hardening session
-    .\Harden-WindowsServer.ps1 -Rollback
+    Shows every change the hardening run would make, without changing anything.
 
-.NOTES
-    Author      : Anas Tanveer
-    GitHub      : https://github.com/anastanveer653/windows-server-hardening-toolkit
-    Tested On   : Windows Server 2016, 2019, 2022
-    Version     : 1.0.0
+.EXAMPLE
+    .\Harden-WindowsServer.ps1 -Mode Harden -ProfileName WebServer -Category SMB, Authentication, Network -Force
+
+    Hardens selected categories with the WebServer profile without prompting.
+
+.EXAMPLE
+    .\Harden-WindowsServer.ps1 -Mode Rollback
+
+    Rolls back the most recent hardening session.
+
+.EXAMPLE
+    .\Harden-WindowsServer.ps1 -ComputerName SRV01, SRV02 -Credential (Get-Credential)
+
+    Audits two remote servers and writes the reports locally.
+
+.LINK
+    https://github.com/anastanveer653/windows-server-hardening-toolkit
 #>
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive console front end; all data is also returned through reports and exit codes.')]
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
+param(
+    [ValidateSet('Audit', 'Harden', 'Rollback')]
+    [string]$Mode = 'Audit',
 
-[CmdletBinding(SupportsShouldProcess)]
-param (
-    [string]$ConfigPath = ".\config\hardening-config.json",
+    [Alias('Profile')]
+    [string]$ProfileName = 'Auto',
+
+    [string]$ProfilePath,
+
+    [string[]]$Category,
+
+    [string[]]$ControlId,
+
+    [string[]]$ExcludeControlId,
+
+    [string]$SessionId,
+
+    [string]$OutputPath,
+
+    [ValidateSet('Html', 'Json', 'Csv')]
+    [string[]]$ReportFormat = @('Html', 'Json', 'Csv'),
+
+    [string[]]$ComputerName,
+
+    [System.Management.Automation.PSCredential]
+    [System.Management.Automation.Credential()]
+    $Credential = [System.Management.Automation.PSCredential]::Empty,
+
+    [switch]$Force,
+
+    # Deprecated v1 switches. (No DontShow: that attribute needs PowerShell 4.0 and would stop the
+    # script from starting on Windows Server 2012 before the version check below can explain why.)
     [switch]$ReportOnly,
-    [string]$Modules = "All",
-    [switch]$Rollback
+
+    [switch]$Rollback,
+
+    [string]$Modules
 )
 
+# This file deliberately avoids #Requires and newer syntax so that it starts on any PowerShell
+# version and can tell the user what to install instead of failing with a parser error.
+if ($PSVersionTable.PSVersion -lt [version]'5.1') {
+    Write-Host ''
+    Write-Host "  Windows PowerShell 5.1 or later is required (this server has $($PSVersionTable.PSVersion))." -ForegroundColor Red
+    Write-Host '  Install Windows Management Framework 5.1 (Windows Server 2012 / 2012 R2), restart, and run the script again:'
+    Write-Host '  https://aka.ms/wmf51download'
+    Write-Host ''
+    exit 2
+}
+
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
-# ─────────────────────────────────────────────
-# Bootstrap — Load helpers and config
-# ─────────────────────────────────────────────
-$ScriptRoot = $PSScriptRoot
-$StartTime  = Get-Date
-$SessionId  = $StartTime.ToString("yyyyMMdd-HHmmss")
-
-# Import all module files
-Get-ChildItem -Path "$ScriptRoot\modules\*.ps1" | ForEach-Object {
-    . $_.FullName
-}
-
-# Import logger
-. "$ScriptRoot\modules\Logger.ps1"
-
-# Load config
-if (-not (Test-Path $ConfigPath)) {
-    Write-Error "Config file not found: $ConfigPath"
-    exit 1
-}
-$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
-
-# Create output directories
-$ReportPath  = $Config.General.ReportOutputPath
-$BackupPath  = $Config.General.BackupOutputPath
-$LogPath     = $Config.General.LogOutputPath
-
-@($ReportPath, $BackupPath, $LogPath) | ForEach-Object {
-    if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
-}
-
-$LogFile    = "$LogPath\hardening-$SessionId.log"
-$ReportFile = "$ReportPath\hardening-report-$SessionId.html"
-$BackupFile = "$BackupPath\registry-backup-$SessionId.reg"
-
-# ─────────────────────────────────────────────
-# Banner
-# ─────────────────────────────────────────────
-function Show-Banner {
-    $mode = if ($ReportOnly) { "AUDIT ONLY (no changes)" } else { "HARDENING MODE" }
-    Write-Host ""
-    Write-Host "╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║     Windows Server Hardening Toolkit  v1.0.0         ║" -ForegroundColor Cyan
-    Write-Host "║     CIS Benchmark Aligned                            ║" -ForegroundColor Cyan
-    Write-Host "╠══════════════════════════════════════════════════════╣" -ForegroundColor Cyan
-    Write-Host "║  Mode    : $($mode.PadRight(42))║" -ForegroundColor Yellow
-    Write-Host "║  Server  : $($env:COMPUTERNAME.PadRight(42))║" -ForegroundColor White
-    Write-Host "║  Session : $($SessionId.PadRight(42))║" -ForegroundColor White
-    Write-Host "║  Log     : $($LogFile.PadRight(42))║" -ForegroundColor White
-    Write-Host "╚══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
-    Write-Host ""
-}
-
-# ─────────────────────────────────────────────
-# Rollback Mode
-# ─────────────────────────────────────────────
-if ($Rollback) {
-    Write-Log "Starting rollback..." -Level WARN
-    $LatestBackup = Get-ChildItem "$BackupPath\registry-backup-*.reg" |
-                    Sort-Object LastWriteTime -Descending |
-                    Select-Object -First 1
-
-    if ($null -eq $LatestBackup) {
-        Write-Host "❌ No backup found in $BackupPath" -ForegroundColor Red
-        exit 1
-    }
-
-    Write-Host "🔄 Restoring registry from: $($LatestBackup.Name)" -ForegroundColor Yellow
-    Start-Process reg -ArgumentList "import `"$($LatestBackup.FullName)`"" -Wait -NoNewWindow
-    Write-Host "✅ Rollback complete. A reboot is recommended." -ForegroundColor Green
-    exit 0
-}
-
-# ─────────────────────────────────────────────
-# System Info Collection
-# ─────────────────────────────────────────────
-function Get-SystemInfo {
-    $os  = Get-CimInstance Win32_OperatingSystem
-    $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
-    return [PSCustomObject]@{
-        ComputerName = $env:COMPUTERNAME
-        OSName       = $os.Caption
-        OSVersion    = $os.Version
-        OSBuild      = $os.BuildNumber
-        CPU          = $cpu.Name
-        TotalRAM_GB  = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
-        Domain       = $env:USERDNSDOMAIN
-        ScanTime     = $StartTime.ToString("yyyy-MM-dd HH:mm:ss")
-    }
-}
-
-# ─────────────────────────────────────────────
-# Registry Backup
-# ─────────────────────────────────────────────
-function Backup-Registry {
-    Write-Log "Creating registry backup → $BackupFile"
-    $keys = @(
-        "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters",
-        "HKLM\SYSTEM\CurrentControlSet\Control\Lsa",
-        "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies",
-        "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+function Import-HardeningModule {
+    $candidates = @(
+        (Join-Path -Path $PSScriptRoot -ChildPath 'src\WindowsServerHardening\WindowsServerHardening.psd1')
+        (Join-Path -Path $PSScriptRoot -ChildPath 'WindowsServerHardening\WindowsServerHardening.psd1')
     )
-    foreach ($key in $keys) {
-        $safeKey = $key -replace '\\', '_'
-        $file = "$BackupPath\${safeKey}-$SessionId.reg"
-        Start-Process reg -ArgumentList "export `"$key`" `"$file`" /y" -Wait -NoNewWindow -ErrorAction SilentlyContinue
+    $path = 'WindowsServerHardening'
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            $path = $candidate
+            break
+        }
     }
-    Write-Log "Registry backup complete."
-}
-
-# ─────────────────────────────────────────────
-# Module Runner
-# ─────────────────────────────────────────────
-$Results = [System.Collections.Generic.List[object]]::new()
-
-function Invoke-Module {
-    param([string]$Name, [scriptblock]$ScriptBlock)
-
-    $skip = ($Modules -ne "All") -and ($Modules -split "," -notcontains $Name)
-    if ($skip) { return }
-
-    Write-Host ""
-    Write-Host "  ▶ Running module: $Name" -ForegroundColor Cyan
-    Write-Log "Module started: $Name"
-
     try {
-        $moduleResults = & $ScriptBlock
-        $Results.AddRange($moduleResults)
-        Write-Host "  ✅ $Name complete" -ForegroundColor Green
-        Write-Log "Module complete: $Name"
-    } catch {
-        Write-Host "  ❌ $Name failed: $_" -ForegroundColor Red
-        Write-Log "Module FAILED: $Name — $_" -Level ERROR
+        return Import-Module -Name $path -Force -PassThru -ErrorAction Stop
+    }
+    catch {
+        if ($_.Exception.Message -match 'digitally signed|cannot be loaded|is not trusted|execution policy') {
+            throw ("The module files are blocked by the execution policy, usually because they were downloaded. " +
+                "Unblock them and allow scripts for this session, then try again:`n" +
+                "    Get-ChildItem -Path '$PSScriptRoot' -Recurse | Unblock-File`n" +
+                "    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force")
+        }
+        throw
     }
 }
 
-# ─────────────────────────────────────────────
-# MAIN
-# ─────────────────────────────────────────────
-Show-Banner
-Write-Log "═══ Hardening session started: $SessionId ═══"
-
-$SystemInfo = Get-SystemInfo
-Write-Log "Target: $($SystemInfo.OSName) | Build $($SystemInfo.OSBuild)"
-
-if (-not $ReportOnly) {
-    Backup-Registry
+function Write-Rule {
+    Write-Host ('  ' + ('-' * 66)) -ForegroundColor DarkGray
 }
 
-# Run all modules
-Invoke-Module "SMB"           { Invoke-SMBHardening          -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "NTLM"          { Invoke-NTLMHardening         -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "AuditPolicy"   { Invoke-AuditPolicyHardening  -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "Firewall"      { Invoke-FirewallHardening      -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "Services"      { Invoke-ServicesHardening      -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "AccountPolicy" { Invoke-AccountPolicyHardening -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "Registry"      { Invoke-RegistryHardening      -Config $Config -ReportOnly:$ReportOnly }
-Invoke-Module "WindowsUpdate" { Invoke-WindowsUpdateHardening -Config $Config -ReportOnly:$ReportOnly }
+function Write-Banner {
+    param([string]$Version, [string]$RunMode)
 
-# Generate report
-Write-Host ""
-Write-Host "  📄 Generating HTML report..." -ForegroundColor Cyan
-New-HardeningReport -Results $Results -SystemInfo $SystemInfo -OutputPath $ReportFile -ReportOnly:$ReportOnly
+    $label = switch ($RunMode) {
+        'Harden'   { 'HARDEN (changes will be applied)' }
+        'Rollback' { 'ROLLBACK' }
+        default    { 'AUDIT (read-only)' }
+    }
+    Write-Host ''
+    Write-Host "  Windows Server Hardening Toolkit v$Version" -ForegroundColor Cyan
+    Write-Rule
+    Write-Host ('  {0,-10}: {1}' -f 'Mode', $label) -ForegroundColor $(if ($RunMode -eq 'Audit') { 'Gray' } else { 'Yellow' })
+}
 
-# Summary
-$Duration  = (Get-Date) - $StartTime
-$PassCount = ($Results | Where-Object { $_.Status -eq "PASS" }).Count
-$FailCount = ($Results | Where-Object { $_.Status -eq "FAIL" }).Count
-$FixedCount= ($Results | Where-Object { $_.Status -eq "FIXED" }).Count
+function Write-RunSummary {
+    param($Run)
 
-Write-Host ""
-Write-Host "╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║                   SUMMARY                           ║" -ForegroundColor Cyan
-Write-Host "╠══════════════════════════════════════════════════════╣" -ForegroundColor Cyan
-Write-Host "║  ✅ Already Compliant : $($PassCount.ToString().PadRight(29))║" -ForegroundColor Green
-Write-Host "║  🔧 Fixed             : $($FixedCount.ToString().PadRight(29))║" -ForegroundColor Yellow
-Write-Host "║  ⚠️  Needs Attention   : $($FailCount.ToString().PadRight(29))║" -ForegroundColor Red
-Write-Host "║  ⏱  Duration          : $("$([math]::Round($Duration.TotalSeconds))s".PadRight(29))║" -ForegroundColor White
-Write-Host "║  📄 Report            : $($ReportFile.PadRight(29))║" -ForegroundColor White
-Write-Host "╚══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    $summary = $Run.Summary
+    $scoreColor = if ($null -eq $summary.Score) { 'Gray' } elseif ($summary.Score -ge 90) { 'Green' } elseif ($summary.Score -ge 70) { 'Yellow' } else { 'Red' }
+    $scoreText = if ($null -eq $summary.Score) { 'n/a' } else { "$($summary.Score) / 100" }
 
-Write-Log "═══ Session complete. Pass=$PassCount Fixed=$FixedCount Fail=$FailCount ═══"
+    Write-Host ('  {0,-10}: {1} ({2}, {3} build {4})' -f 'Computer', $Run.ComputerName, $Run.System.Role, $Run.System.OSName, $Run.System.OSBuild)
+    Write-Host ('  {0,-10}: {1}' -f 'Profile', $Run.Profile)
+    Write-Host ('  {0,-10}: {1}' -f 'Session', $Run.SessionId)
+    Write-Rule
+    Write-Host ('  {0,-10}: ' -f 'Score') -NoNewline
+    Write-Host ('{0}   Grade {1}' -f $scoreText, $summary.Grade) -ForegroundColor $scoreColor
+    Write-Host ('  {0,-10}: ' -f 'Results') -NoNewline
+    Write-Host ('{0} compliant  ' -f $summary.Pass) -ForegroundColor Green -NoNewline
+    Write-Host ('{0} remediated  ' -f $summary.Fixed) -ForegroundColor Cyan -NoNewline
+    Write-Host ('{0} non-compliant  ' -f $summary.Fail) -ForegroundColor Yellow -NoNewline
+    Write-Host ('{0} errors  ' -f $summary.Error) -ForegroundColor Red -NoNewline
+    Write-Host ('{0} n/a' -f $summary.NotApplicable) -ForegroundColor DarkGray
 
-if (-not $ReportOnly -and $Config.General.RebootAfterHardening) {
-    Write-Host "`n⚠️  Rebooting in 60 seconds. Press Ctrl+C to cancel." -ForegroundColor Yellow
-    Start-Sleep -Seconds 60
-    Restart-Computer -Force
+    $severityRank = @{ Critical = 0; High = 1; Medium = 2; Low = 3 }
+    $open = @($Run.Results | Where-Object { $_.Status -eq 'Fail' -or $_.Status -eq 'Error' } |
+        Sort-Object -Property @{ Expression = { $severityRank[[string]$_.Severity] } }, Id)
+    if ($open.Count -gt 0) {
+        Write-Host ''
+        Write-Host '  Top open findings' -ForegroundColor White
+        foreach ($finding in ($open | Select-Object -First 10)) {
+            $color = switch ($finding.Severity) { 'Critical' { 'Red' } 'High' { 'Yellow' } default { 'Gray' } }
+            Write-Host ('   {0,-10} {1,-9} {2}' -f "[$($finding.Severity)]", $finding.Id, $finding.Title) -ForegroundColor $color
+        }
+        if ($open.Count -gt 10) {
+            Write-Host ("   ... and {0} more (see the report)" -f ($open.Count - 10)) -ForegroundColor DarkGray
+        }
+    }
+
+    if ($summary.RebootRequired) {
+        Write-Host ''
+        Write-Host '  A restart is required for some changes to take effect.' -ForegroundColor Yellow
+    }
+
+    if (@($Run.Reports).Count -gt 0) {
+        Write-Host ''
+        Write-Host '  Reports' -ForegroundColor White
+        foreach ($report in $Run.Reports) {
+            Write-Host "   $report"
+        }
+    }
+    if ($Run.Mode -eq 'Remediate' -and $summary.Fixed -gt 0) {
+        Write-Host ''
+        Write-Host "  Roll back with: .\Harden-WindowsServer.ps1 -Mode Rollback -SessionId $($Run.SessionId)" -ForegroundColor DarkGray
+    }
+    Write-Host ''
+}
+
+# --- v1 compatibility --------------------------------------------------------------------------
+if ($Rollback) { $Mode = 'Rollback' }
+elseif ($ReportOnly) { $Mode = 'Audit' }
+if ($Modules -and $Modules -ne 'All') {
+    $legacyMap = @{
+        SMB = 'SMB'; NTLM = 'Authentication'; AuditPolicy = 'AuditLogging'; Firewall = 'Firewall'; Services = 'Services'
+        AccountPolicy = 'AccountPolicy'; Registry = 'System'; WindowsUpdate = 'WindowsUpdate'
+    }
+    $Category = @($Modules -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | ForEach-Object {
+            if ($legacyMap.ContainsKey($_)) { $legacyMap[$_] } else { $_ }
+        })
+}
+
+try {
+    $module = Import-HardeningModule
+    Write-Banner -Version $module.Version -RunMode $Mode
+
+    $common = @{ ProfileName = $ProfileName }
+    foreach ($name in @('ProfilePath', 'OutputPath')) {
+        if ($PSBoundParameters.ContainsKey($name)) { $common[$name] = $PSBoundParameters[$name] }
+    }
+    if ($Category) { $common.Category = $Category }
+    if ($ControlId) { $common.ControlId = $ControlId }
+    if ($ExcludeControlId) { $common.ExcludeControlId = $ExcludeControlId }
+
+    switch ($Mode) {
+        'Rollback' {
+            $parameters = @{ Force = $Force; WhatIf = [bool]$WhatIfPreference }
+            if ($SessionId) { $parameters.SessionId = $SessionId }
+            if ($OutputPath) { $parameters.OutputPath = $OutputPath }
+            if ($PSBoundParameters.ContainsKey('Confirm')) { $parameters.Confirm = $PSBoundParameters['Confirm'] }
+
+            $results = @(Undo-HardeningRemediation @parameters)
+            Write-Rule
+            foreach ($item in $results) {
+                $color = switch ($item.Status) { 'Restored' { 'Green' } 'Skipped' { 'Yellow' } default { 'Red' } }
+                Write-Host ('   {0,-9} {1,-9} {2}' -f $item.Status, $item.ControlId, $item.Detail) -ForegroundColor $color
+            }
+            $failedCount = @($results | Where-Object { $_.Status -eq 'Failed' }).Count
+            Write-Host ''
+            Write-Host ("  Rollback finished: {0} restored, {1} skipped, {2} failed." -f @($results | Where-Object { $_.Status -eq 'Restored' }).Count, @($results | Where-Object { $_.Status -eq 'Skipped' }).Count, $failedCount)
+            Write-Host ''
+            exit $(if ($failedCount -gt 0) { 1 } else { 0 })
+        }
+
+        'Harden' {
+            if ($ComputerName) {
+                throw 'Remote hardening is not supported. Run -Mode Harden locally, or audit remote servers with -Mode Audit -ComputerName.'
+            }
+            $parameters = $common + @{ ReportFormat = $ReportFormat; Force = $Force; WhatIf = [bool]$WhatIfPreference }
+            if ($PSBoundParameters.ContainsKey('Confirm')) { $parameters.Confirm = $PSBoundParameters['Confirm'] }
+            $runs = @(Invoke-HardeningRemediation @parameters)
+        }
+
+        default {
+            $parameters = $common + @{ ReportFormat = $ReportFormat }
+            if ($ComputerName) {
+                $parameters.ComputerName = $ComputerName
+                if ($Credential -ne [System.Management.Automation.PSCredential]::Empty) { $parameters.Credential = $Credential }
+            }
+            $runs = @(Invoke-HardeningAudit @parameters -ErrorAction Continue)
+            if ($ComputerName -and $runs.Count -lt @($ComputerName).Count) {
+                foreach ($runItem in $runs) { Write-RunSummary -Run $runItem }
+                Write-Host "  $(@($ComputerName).Count - $runs.Count) of $(@($ComputerName).Count) remote audit(s) failed." -ForegroundColor Red
+                exit 2
+            }
+        }
+    }
+
+    foreach ($runItem in $runs) {
+        Write-RunSummary -Run $runItem
+    }
+    $open = 0
+    foreach ($runItem in $runs) { $open += $runItem.Summary.Fail + $runItem.Summary.Error }
+    exit $(if ($open -gt 0) { 1 } else { 0 })
+}
+catch {
+    Write-Host ''
+    Write-Host "  ERROR: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ''
+    exit 2
 }
