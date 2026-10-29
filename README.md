@@ -200,9 +200,11 @@ findings and `2` when the run fails. Use it in scheduled tasks, RMM tools or dep
 
 ```powershell
 # Weekly compliance snapshot as a scheduled task (runs as SYSTEM)
-$action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\Tools\WSH\Harden-WindowsServer.ps1" -ReportFormat Json, Html'
+$action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\Tools\WSH\Harden-WindowsServer.ps1" -ReportFormat Json,Html'
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 6am
 Register-ScheduledTask -TaskName 'Hardening audit' -Action $action -Trigger $trigger -User 'SYSTEM' -RunLevel Highest
+
+# With powershell.exe -File, separate list values with commas and no spaces (Json,Html; SMB-*,NET-*)
 
 # Audit a fleet from an admin workstation; one report per server
 .\Harden-WindowsServer.ps1 -ComputerName (Get-Content .\servers.txt) -Credential (Get-Credential)

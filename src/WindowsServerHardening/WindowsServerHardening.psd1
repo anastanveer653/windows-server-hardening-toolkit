@@ -1,6 +1,6 @@
 @{
     RootModule           = 'WindowsServerHardening.psm1'
-    ModuleVersion        = '2.0.0'
+    ModuleVersion        = '2.0.1'
     GUID                 = '5bc85f50-8f4f-4b6b-9979-9e5bb59d13e2'
     Author               = 'Anas Tanveer'
     CompanyName          = 'Anas Tanveer'
