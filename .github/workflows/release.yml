@@ -36,9 +36,27 @@ jobs:
           $hash = (Get-FileHash -Path "out/WindowsServerHardening-$version.zip" -Algorithm SHA256).Hash
           "$hash  WindowsServerHardening-$version.zip" | Set-Content -Path "out/WindowsServerHardening-$version.zip.sha256"
 
+          # Release notes: install instructions followed by this version's CHANGELOG section.
+          $changelog = Get-Content -Path CHANGELOG.md -Raw
+          $section = [regex]::Match($changelog, "(?ms)^## \[$([regex]::Escape($version))\][^\n]*\n(.*?)(?=^## \[|\z)")
+          if (-not $section.Success) { throw "CHANGELOG.md has no section for version $version." }
+          $install = @(
+              '## Install'
+              ''
+              "1. Download ``WindowsServerHardening-$version.zip`` and verify it against the ``.sha256`` file: ``Get-FileHash .\WindowsServerHardening-$version.zip``"
+              '2. Extract it, then in an elevated PowerShell run `Get-ChildItem -Recurse | Unblock-File`'
+              '3. Audit (read-only): `.\Harden-WindowsServer.ps1`, or preview hardening with `.\Harden-WindowsServer.ps1 -Mode Harden -WhatIf`'
+              ''
+              'Supports Windows Server 2012 to 2025 on Windows PowerShell 5.1 and PowerShell 7. See docs/COMPATIBILITY.md in the repository.'
+              ''
+          ) -join "`n"
+          Set-Content -Path out/release-notes.md -Value ($install + "`n" + $section.Groups[1].Value.Trim()) -Encoding utf8
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          name: Windows Server Hardening Toolkit ${{ github.ref_name }}
+          body_path: out/release-notes.md
           files: |
             out/*.zip
             out/*.sha256

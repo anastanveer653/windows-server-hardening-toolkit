@@ -19,7 +19,7 @@ Undo-HardeningRemediation               # restore the previous configuration
 ```
 
 <p align="center">
-  <a href="docs/sample-report.html"><b>View a sample report</b></a> &middot;
+  <a href="https://anastanveer653.github.io/windows-server-hardening-toolkit/docs/sample-report.html"><b>View a live sample report</b></a> &middot;
   <a href="docs/CONTROLS.md"><b>Control reference</b></a> &middot;
   <a href="docs/ARCHITECTURE.md"><b>Architecture</b></a> &middot;
   <a href="docs/COMPATIBILITY.md"><b>Compatibility</b></a>
