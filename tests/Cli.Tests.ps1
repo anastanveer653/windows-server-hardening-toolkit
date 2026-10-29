@@ -36,8 +36,9 @@ Describe 'Harden-WindowsServer.ps1 command line' {
     It 'does not bind stray values to -Mode' {
         $result = Invoke-Cli -Arguments @('-ControlId', 'SMB-001,', 'Harden', '-OutputPath', (Join-Path $TestDrive 'stray'))
         $result.ExitCode | Should -Not -Be 0
-        # The error text can be wrapped at the console width, so allow any whitespace between words.
-        $result.Output | Should -Match 'positional\s+parameter'
+        # PowerShell 7 prints the message; Windows PowerShell 5.1 wraps and interleaves it with
+        # NativeCommandError records but always includes the stable error ID.
+        $result.Output | Should -Match 'positional\s+parameter|PositionalParameterNotFound'
         $result.Output | Should -Not -Match 'HARDEN \(changes will be applied\)'
         Test-Path -Path (Join-Path $TestDrive 'stray\sessions') | Should -BeFalse
     }
