@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-29
+
+### Fixed
+
+- `Harden-WindowsServer.ps1` called through `powershell.exe -File` (scheduled tasks, RMM tools,
+  cmd.exe) now accepts comma-separated lists such as `-ReportFormat Json,Html` and
+  `-ControlId SMB-*,NET-*`. Before, `-File` passed them as a single string and the run failed.
+- Stray arguments are no longer bound positionally to `-Mode`. The script now reports a clear
+  parameter error instead.
+- The scheduled task example in the README.
+
+### Added
+
+- CLI tests that run the script through `-File`, the way schedulers call it.
+
 ## [2.0.0] - 2026-10-29
 
 Complete rewrite as a PowerShell module with a data-driven control catalog.

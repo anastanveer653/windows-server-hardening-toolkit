@@ -86,7 +86,7 @@
     https://github.com/anastanveer653/windows-server-hardening-toolkit
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive console front end; all data is also returned through reports and exit codes.')]
-[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High', PositionalBinding = $false)]
 param(
     [ValidateSet('Audit', 'Harden', 'Rollback')]
     [string]$Mode = 'Audit',
@@ -106,7 +106,7 @@ param(
 
     [string]$OutputPath,
 
-    [ValidateSet('Html', 'Json', 'Csv')]
+    # Validated after comma splitting (see ConvertTo-ListArgument), so no ValidateSet here.
     [string[]]$ReportFormat = @('Html', 'Json', 'Csv'),
 
     [string[]]$ComputerName,
@@ -139,6 +139,26 @@ if ($PSVersionTable.PSVersion -lt [version]'5.1') {
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function ConvertTo-ListArgument {
+    # "powershell.exe -File" (scheduled tasks, RMM tools, cmd.exe) passes "Json,Html" as one string
+    # instead of an array. Splitting on commas makes lists work the same from every caller.
+    param([string[]]$Value)
+    return @($Value | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
+$Category = ConvertTo-ListArgument -Value $Category
+$ControlId = ConvertTo-ListArgument -Value $ControlId
+$ExcludeControlId = ConvertTo-ListArgument -Value $ExcludeControlId
+$ComputerName = ConvertTo-ListArgument -Value $ComputerName
+$ReportFormat = ConvertTo-ListArgument -Value $ReportFormat
+$invalidFormats = @($ReportFormat | Where-Object { @('Html', 'Json', 'Csv') -notcontains $_ })
+if ($invalidFormats.Count -gt 0 -or $ReportFormat.Count -eq 0) {
+    Write-Host ''
+    Write-Host "  ERROR: Invalid -ReportFormat '$($invalidFormats -join ', ')'. Use one or more of: Html, Json, Csv (for example -ReportFormat Html,Json)." -ForegroundColor Red
+    Write-Host ''
+    exit 2
+}
 
 function Import-HardeningModule {
     $candidates = @(
