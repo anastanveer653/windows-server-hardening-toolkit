@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Windows Server Hardening Toolkit">
+<title>{{TITLE}}</title>
+<style>
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f7f9fb; --text: #18202b; --muted: #5d6877; --border: #e1e6ec;
+  --accent: #1f5fa8; --accent-soft: #e8f0fa;
+  --pass: #1d7a46; --pass-soft: #e5f4ea; --fixed: #1f5fa8; --fixed-soft: #e6eefa;
+  --fail: #b54708; --fail-soft: #fdf0e3; --error: #b42318; --error-soft: #fdeceb; --na: #667085; --na-soft: #eef0f3;
+  --critical: #b42318; --high: #c4320a; --medium: #a15c07; --low: #475467;
+  --ring-track: #e6eaef; --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141a; --surface: #161d25; --surface-2: #1b232d; --text: #e6ebf1; --muted: #98a2b3; --border: #2a3441;
+    --accent: #6aa7f0; --accent-soft: #1b2b40;
+    --pass: #4cc38a; --pass-soft: #15291f; --fixed: #6aa7f0; --fixed-soft: #182638;
+    --fail: #f2994a; --fail-soft: #2e2116; --error: #f97066; --error-soft: #321a19; --na: #98a2b3; --na-soft: #222a34;
+    --critical: #f97066; --high: #f38744; --medium: #e3b341; --low: #98a2b3;
+    --ring-track: #273140; --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+header.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+header.top .wrap { display: flex; align-items: center; gap: 16px; padding-top: 18px; padding-bottom: 18px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 260px; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+.brand p { margin: 0; color: var(--muted); font-size: 13px; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); }
+.badge.mode { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.badge.sample { background: var(--fail-soft); color: var(--fail); border-color: transparent; }
+main { padding: 24px 0 48px; }
+.grid { display: grid; gap: 16px; }
+.overview { grid-template-columns: minmax(260px, 320px) 1fr; }
+@media (max-width: 860px) { .overview { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+.pad { padding: 20px; }
+.score { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.score .ring { position: relative; width: 168px; height: 168px; }
+.score .ring svg { transform: rotate(-90deg); }
+.score .ring .value { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score .ring .value strong { font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
+.score .ring .value span { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.score .grade { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.score .grade b { color: var(--text); }
+.stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { padding: 14px 16px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.stat .n { font-size: 26px; font-weight: 700; line-height: 1.1; }
+.stat .l { color: var(--muted); font-size: 12px; }
+.stat.pass .n { color: var(--pass); } .stat.fixed .n { color: var(--fixed); } .stat.fail .n { color: var(--fail); }
+.stat.error .n { color: var(--error); } .stat.na .n { color: var(--na); }
+.sev-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--ring-track); margin: 8px 0 10px; }
+.sev-bar span { display: block; height: 100%; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 24px; margin: 0; }
+.meta div { min-width: 0; }
+.meta dt { color: var(--muted); font-size: 12px; }
+.meta dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.notice { padding: 12px 16px; border-radius: 8px; background: var(--fail-soft); color: var(--fail); font-weight: 500; margin-top: 16px; }
+.cats table { width: 100%; border-collapse: collapse; }
+.cats td { padding: 8px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.cats tr:last-child td { border-bottom: 0; }
+.cats .bar { height: 8px; background: var(--ring-track); border-radius: 999px; overflow: hidden; min-width: 120px; }
+.cats .bar span { display: block; height: 100%; background: var(--pass); }
+.cats .num { text-align: right; white-space: nowrap; color: var(--muted); font-size: 12px; padding-left: 12px; width: 1%; }
+.cats .name { width: 30%; font-weight: 500; padding-right: 12px; }
+.toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip .c { opacity: .7; margin-left: 4px; }
+.toolbar .spacer { flex: 1 1 auto; }
+.toolbar input, .toolbar select { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.toolbar input { min-width: 220px; }
+table.results { width: 100%; border-collapse: collapse; }
+table.results th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--surface-2); position: sticky; top: 0; }
+table.results td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.results tr.row { cursor: pointer; }
+table.results tr.row:hover td { background: var(--surface-2); }
+table.results tr.row:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+table.results .id { font-family: Consolas, "Cascadia Mono", Menlo, monospace; font-size: 12px; white-space: nowrap; color: var(--muted); }
+table.results .title { font-weight: 500; }
+table.results .actual { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.st-Pass { background: var(--pass-soft); color: var(--pass); } .st-Fixed { background: var(--fixed-soft); color: var(--fixed); }
+.st-Fail { background: var(--fail-soft); color: var(--fail); } .st-Error { background: var(--error-soft); color: var(--error); }
+.st-NotApplicable { background: var(--na-soft); color: var(--na); }
+.sev { font-weight: 600; font-size: 12px; white-space: nowrap; }
+.sev::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; background: currentColor; }
+.sev-Critical { color: var(--critical); } .sev-High { color: var(--high); } .sev-Medium { color: var(--medium); } .sev-Low { color: var(--low); }
+tr.details td { background: var(--surface-2); padding: 16px 20px 20px; }
+.kv { display: grid; grid-template-columns: 150px 1fr; gap: 8px 16px; margin: 0; }
+@media (max-width: 700px) { .kv { grid-template-columns: 1fr; } }
+.kv dt { color: var(--muted); font-size: 12px; padding-top: 2px; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.kv code { font-family: Consolas, "Cascadia Mono", Menlo, monospace; font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; }
+.tags a { display: inline-block; margin: 0 6px 4px 0; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); text-decoration: none; }
+.empty { padding: 32px; text-align: center; color: var(--muted); }
+footer { color: var(--muted); font-size: 12px; text-align: center; padding: 24px 0 40px; }
+.hidden { display: none; }
+@media print {
+  body { background: #fff; }
+  .toolbar { display: none; }
+  .card { box-shadow: none; break-inside: avoid; }
+  table.results th { position: static; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--accent)" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Z"/><path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+      <div>
+        <h1>Windows Server Hardening Report</h1>
+        <p id="subtitle"></p>
+      </div>
+    </div>
+    <div class="badges" id="badges"></div>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+  <noscript><div class="card pad">This report needs JavaScript to render. The same data is available in the JSON report generated alongside this file.</div></noscript>
+</main>
+
+<footer class="wrap" id="footer"></footer>
+
+<script id="report-data" type="application/json">{{DATA}}</script>
+<script>
+(function () {
+  'use strict';
+  var data = JSON.parse(document.getElementById('report-data').textContent);
+  var STATUS_LABEL = { Pass: 'Pass', Fixed: 'Remediated', Fail: 'Fail', Error: 'Error', NotApplicable: 'N/A' };
+  var STATUS_ORDER = { Error: 0, Fail: 1, Fixed: 2, Pass: 3, NotApplicable: 4 };
+  var SEVERITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+  var SEP = ' ' + String.fromCharCode(183) + ' ';
+  var state = { status: 'Open', severity: 'All', query: '' };
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    var key;
+    if (attrs) {
+      for (key in attrs) {
+        if (!attrs.hasOwnProperty(key) || attrs[key] === null || attrs[key] === undefined) { continue; }
+        if (key === 'text') { node.textContent = attrs[key]; }
+        else if (key === 'cls') { node.className = attrs[key]; }
+        else if (key.indexOf('on') === 0) { node.addEventListener(key.substring(2), attrs[key]); }
+        else { node.setAttribute(key, attrs[key]); }
+      }
+    }
+    (children || []).forEach(function (child) {
+      if (child === null || child === undefined) { return; }
+      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+    });
+    return node;
+  }
+
+  function svg(tag, attrs) {
+    var node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var key in attrs) { if (attrs.hasOwnProperty(key)) { node.setAttribute(key, attrs[key]); } }
+    return node;
+  }
+
+  function fmtDate(value) {
+    if (!value) { return '-'; }
+    var d = new Date(value);
+    return isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+  }
+
+  function attackUrl(id) {
+    return 'https://attack.mitre.org/techniques/' + id.replace('.', '/') + '/';
+  }
+
+  function scoreColor(score) {
+    if (score === null || score === undefined) { return 'var(--na)'; }
+    if (score >= 90) { return 'var(--pass)'; }
+    if (score >= 70) { return 'var(--medium)'; }
+    return 'var(--error)';
+  }
+
+  var s = data.summary;
+  var sys = data.system;
+  var sess = data.session;
+
+  document.getElementById('subtitle').textContent = sys.computerName + SEP + (sys.osName || 'Unknown OS') + SEP + fmtDate(sess.startTime);
+  var badges = document.getElementById('badges');
+  badges.appendChild(el('span', { cls: 'badge mode', text: sess.mode === 'Remediate' ? 'Remediation run' : 'Audit (read-only)' }));
+  badges.appendChild(el('span', { cls: 'badge', text: 'Profile: ' + sess.profile }));
+  if (data.isSample) { badges.appendChild(el('span', { cls: 'badge sample', text: 'Sample data' })); }
+
+  var app = document.getElementById('app');
+
+  // Overview: score ring + counters + open findings by severity
+  var radius = 70, circumference = 2 * Math.PI * radius;
+  var pct = (s.score === null || s.score === undefined) ? 0 : s.score;
+  var ring = svg('svg', { width: '168', height: '168', viewBox: '0 0 168 168', 'aria-hidden': 'true' });
+  ring.appendChild(svg('circle', { cx: '84', cy: '84', r: String(radius), fill: 'none', stroke: 'var(--ring-track)', 'stroke-width': '14' }));
+  ring.appendChild(svg('circle', { cx: '84', cy: '84', r: String(radius), fill: 'none', stroke: scoreColor(s.score), 'stroke-width': '14', 'stroke-linecap': 'round',
+    'stroke-dasharray': String(circumference), 'stroke-dashoffset': String(circumference * (1 - pct / 100)) }));
+
+  var scoreCard = el('section', { cls: 'card pad score', 'aria-label': 'Security score' }, [
+    el('h2', { text: 'Security score' }),
+    el('div', { cls: 'ring' }, [ring, el('div', { cls: 'value' }, [
+      el('strong', { text: (s.score === null || s.score === undefined) ? 'n/a' : String(s.score) }),
+      el('span', { text: 'out of 100' })
+    ])]),
+    el('div', { cls: 'grade' }, ['Grade ', el('b', { text: s.grade }), SEP + (s.complianceRate === null ? 'n/a' : s.complianceRate + '%') + ' of evaluated controls compliant'])
+  ]);
+
+  var open = s.openBySeverity;
+  var openTotal = open.critical + open.high + open.medium + open.low;
+  var sevBar = el('div', { cls: 'sev-bar', role: 'img', 'aria-label': 'Open findings by severity' });
+  [['critical', 'Critical'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']].forEach(function (pair) {
+    if (open[pair[0]] > 0) { sevBar.appendChild(el('span', { style: 'width:' + (open[pair[0]] / openTotal * 100) + '%;background:var(--' + pair[0] + ')' })); }
+  });
+  var legend = el('div', { cls: 'legend' });
+  [['critical', 'Critical'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']].forEach(function (pair) {
+    legend.appendChild(el('span', null, [el('i', { style: 'background:var(--' + pair[0] + ')' }), pair[1] + ': ' + open[pair[0]]]));
+  });
+
+  var stats = el('div', { cls: 'grid stats' }, [
+    el('div', { cls: 'stat pass' }, [el('div', { cls: 'n', text: String(s.pass) }), el('div', { cls: 'l', text: 'Compliant' })]),
+    el('div', { cls: 'stat fixed' }, [el('div', { cls: 'n', text: String(s.fixed) }), el('div', { cls: 'l', text: 'Remediated' })]),
+    el('div', { cls: 'stat fail' }, [el('div', { cls: 'n', text: String(s.fail) }), el('div', { cls: 'l', text: 'Non-compliant' })]),
+    el('div', { cls: 'stat error' }, [el('div', { cls: 'n', text: String(s.error) }), el('div', { cls: 'l', text: 'Errors' })]),
+    el('div', { cls: 'stat na' }, [el('div', { cls: 'n', text: String(s.notApplicable) }), el('div', { cls: 'l', text: 'Not applicable' })])
+  ]);
+
+  var findingsCard = el('section', { cls: 'card pad', 'aria-label': 'Summary' }, [
+    el('h2', { text: 'Results' }),
+    stats,
+    el('h2', { text: 'Open findings by severity (' + openTotal + ')', style: 'margin-top:20px' }),
+    openTotal > 0 ? sevBar : el('p', { text: 'No open findings.', style: 'margin:4px 0 10px;color:var(--pass);font-weight:500' }),
+    legend,
+    s.rebootRequired ? el('div', { cls: 'notice', text: 'One or more remediated settings take effect only after a restart.' }) : null
+  ]);
+
+  app.appendChild(el('div', { cls: 'grid overview' }, [scoreCard, findingsCard]));
+
+  // System and session details
+  function meta(label, value) { return el('div', null, [el('dt', { text: label }), el('dd', { text: (value === null || value === undefined || value === '') ? '-' : String(value) })]); }
+  app.appendChild(el('section', { cls: 'card pad', style: 'margin-top:16px', 'aria-label': 'System' }, [
+    el('h2', { text: 'System' }),
+    el('dl', { cls: 'meta' }, [
+      meta('Computer', sys.computerName), meta('Operating system', sys.osName), meta('Version / build', sys.osVersion + ' / ' + sys.osBuild),
+      meta('Role', sys.role), meta('Domain', sys.domain), meta('Last boot', fmtDate(sys.lastBootTime)),
+      meta('Profile', sess.profile), meta('Started', fmtDate(sess.startTime)), meta('Duration', sess.durationSeconds + ' s'),
+      meta('Session', sess.id), meta('PowerShell', sys.powerShellVersion), meta('Elevated', sys.isElevated ? 'Yes' : 'No')
+    ])
+  ]));
+
+  // Category breakdown
+  var catTable = el('table', null, []);
+  var catBody = el('tbody');
+  s.categories.slice().sort(function (a, b) { return (a.rate === null ? 101 : a.rate) - (b.rate === null ? 101 : b.rate); }).forEach(function (c) {
+    var rate = c.rate === null ? 0 : c.rate;
+    catBody.appendChild(el('tr', null, [
+      el('td', { cls: 'name', text: c.name }),
+      el('td', null, [el('div', { cls: 'bar' }, [el('span', { style: 'width:' + rate + '%;background:' + scoreColor(c.rate) })])]),
+      el('td', { cls: 'num', text: (c.rate === null ? 'n/a' : c.rate + '%') + '  (' + c.compliant + '/' + c.evaluated + ')' })
+    ]));
+  });
+  catTable.appendChild(catBody);
+  app.appendChild(el('section', { cls: 'card pad cats', style: 'margin-top:16px', 'aria-label': 'Categories' }, [el('h2', { text: 'Compliance by category' }), catTable]));
+
+  // Findings table with filters
+  var results = data.results.slice().sort(function (a, b) {
+    return (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || (a.id < b.id ? -1 : 1);
+  });
+
+  function countWhere(fn) { var n = 0; results.forEach(function (r) { if (fn(r)) { n++; } }); return n; }
+  var filters = [
+    ['Open', 'Open issues', function (r) { return r.status === 'Fail' || r.status === 'Error'; }],
+    ['All', 'All', function () { return true; }],
+    ['Fixed', 'Remediated', function (r) { return r.status === 'Fixed'; }],
+    ['Pass', 'Compliant', function (r) { return r.status === 'Pass'; }],
+    ['NotApplicable', 'N/A', function (r) { return r.status === 'NotApplicable'; }]
+  ];
+  var filterFn = {};
+  var chips = el('div', { cls: 'chips', role: 'group', 'aria-label': 'Filter by status' });
+  filters.forEach(function (f) {
+    filterFn[f[0]] = f[2];
+    var chip = el('button', { cls: 'chip', type: 'button', 'aria-pressed': String(state.status === f[0]), 'data-status': f[0], onclick: function () {
+      state.status = f[0];
+      Array.prototype.forEach.call(chips.querySelectorAll('.chip'), function (c) { c.setAttribute('aria-pressed', String(c.getAttribute('data-status') === f[0])); });
+      render();
+    } }, [f[1], el('span', { cls: 'c', text: String(countWhere(f[2])) })]);
+    chips.appendChild(chip);
+  });
+  if (countWhere(filters[0][2]) === 0) { state.status = 'All'; chips.querySelector('[data-status="All"]').setAttribute('aria-pressed', 'true'); chips.querySelector('[data-status="Open"]').setAttribute('aria-pressed', 'false'); }
+
+  var severitySelect = el('select', { 'aria-label': 'Filter by severity', onchange: function (e) { state.severity = e.target.value; render(); } },
+    ['All', 'Critical', 'High', 'Medium', 'Low'].map(function (v) { return el('option', { value: v, text: v === 'All' ? 'All severities' : v }); }));
+  var search = el('input', { type: 'search', placeholder: 'Search ID, title, category, ATT&CK...', 'aria-label': 'Search findings', oninput: function (e) { state.query = e.target.value.toLowerCase(); render(); } });
+
+  var tbody = el('tbody');
+  var table = el('table', { cls: 'results' }, [
+    el('thead', null, [el('tr', null, [el('th', { text: 'Severity' }), el('th', { text: 'ID' }), el('th', { text: 'Control' }), el('th', { text: 'Category' }), el('th', { text: 'Status' }), el('th', { text: 'Current value' })])]),
+    tbody
+  ]);
+  var empty = el('div', { cls: 'empty hidden', text: 'No findings match the current filters.' });
+  app.appendChild(el('section', { cls: 'card', style: 'margin-top:16px', 'aria-label': 'Findings' }, [
+    el('div', { cls: 'toolbar' }, [chips, el('span', { cls: 'spacer' }), severitySelect, search]),
+    table, empty
+  ]));
+
+  function detailRow(r) {
+    var items = [];
+    function add(label, value, isCode) {
+      if (value === null || value === undefined || value === '') { return; }
+      items.push(el('dt', { text: label }));
+      items.push(el('dd', null, [isCode ? el('code', { text: value }) : value]));
+    }
+    add('Why it matters', r.rationale);
+    add('Expected', r.expected, true);
+    add('Current', r.actual, true);
+    add('Result', r.detail);
+    add('Remediation', r.remediation);
+    add('Operational impact', r.impact);
+    add('Benchmark', r.benchmark);
+    if (r.mitreAttack && r.mitreAttack.length) {
+      items.push(el('dt', { text: 'MITRE ATT&CK' }));
+      items.push(el('dd', { cls: 'tags' }, r.mitreAttack.map(function (t) { return el('a', { href: attackUrl(t), target: '_blank', rel: 'noopener noreferrer', text: t }); })));
+    }
+    if (r.links && r.links.length) {
+      items.push(el('dt', { text: 'References' }));
+      items.push(el('dd', null, r.links.map(function (l) { return el('div', null, [el('a', { href: l, target: '_blank', rel: 'noopener noreferrer', text: l })]); })));
+    }
+    if (r.rebootRequired) { add('Restart', 'Required for this change to take effect.'); }
+    return el('tr', { cls: 'details hidden' }, [el('td', { colspan: '6' }, [el('dl', { cls: 'kv' }, items)])]);
+  }
+
+  var rows = results.map(function (r) {
+    var details = detailRow(r);
+    var toggle = function () { details.classList.toggle('hidden'); row.setAttribute('aria-expanded', String(!details.classList.contains('hidden'))); };
+    var row = el('tr', { cls: 'row', tabindex: '0', 'aria-expanded': 'false', onclick: toggle, onkeydown: function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } } }, [
+      el('td', null, [el('span', { cls: 'sev sev-' + r.severity, text: r.severity })]),
+      el('td', { cls: 'id', text: r.id }),
+      el('td', { cls: 'title', text: r.title }),
+      el('td', { text: r.category }),
+      el('td', null, [el('span', { cls: 'pill st-' + r.status, text: STATUS_LABEL[r.status] || r.status })]),
+      el('td', { cls: 'actual', text: r.actual || '-' })
+    ]);
+    tbody.appendChild(row);
+    tbody.appendChild(details);
+    var haystack = [r.id, r.title, r.category, r.status, r.actual, r.benchmark].concat(r.mitreAttack || []).join(' ').toLowerCase();
+    return { data: r, row: row, details: details, haystack: haystack };
+  });
+
+  function render() {
+    var visible = 0;
+    rows.forEach(function (item) {
+      var show = filterFn[state.status](item.data) &&
+        (state.severity === 'All' || item.data.severity === state.severity) &&
+        (!state.query || item.haystack.indexOf(state.query) !== -1);
+      item.row.classList.toggle('hidden', !show);
+      if (!show) { item.details.classList.add('hidden'); item.row.setAttribute('aria-expanded', 'false'); }
+      if (show) { visible++; }
+    });
+    empty.classList.toggle('hidden', visible !== 0);
+  }
+  render();
+
+  var footer = document.getElementById('footer');
+  footer.appendChild(document.createTextNode('Generated by ' + data.generator.name + ' v' + data.generator.version + SEP));
+  footer.appendChild(el('a', { href: data.generator.url, target: '_blank', rel: 'noopener noreferrer', text: 'Project on GitHub' }));
+  footer.appendChild(document.createTextNode(SEP + 'Benchmark mappings reference CIS recommendation titles; verify against the benchmark version your organisation has adopted.'));
+})();
+</script>
+</body>
+</html>

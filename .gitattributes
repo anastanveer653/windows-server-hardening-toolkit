@@ -1,0 +1,9 @@
+* text=auto
+
+*.ps1    text eol=crlf
+*.psm1   text eol=crlf
+*.psd1   text eol=crlf
+*.ps1xml text eol=crlf
+
+docs/sample-report.html linguist-generated=true
+docs/CONTROLS.md        linguist-generated=true

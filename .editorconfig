@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{ps1,psm1,psd1,ps1xml}]
+end_of_line = crlf
+
+[*.{yml,yaml,json,html}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

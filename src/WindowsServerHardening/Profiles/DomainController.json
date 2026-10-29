@@ -1,0 +1,13 @@
+{
+  "Name": "DomainController",
+  "Extends": "MemberServer",
+  "Description": "Domain controller baseline. Adds Kerberos auditing; account policy is audited only because it must be managed through the Default Domain Policy GPO.",
+  "EnableControls": [],
+  "ExcludeControls": [],
+  "AuditOnlyControls": [
+    "ACCT-*"
+  ],
+  "Parameters": {
+    "SecurityLogMaxSizeKB": 4194304
+  }
+}

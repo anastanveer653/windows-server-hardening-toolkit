@@ -1,0 +1,7 @@
+Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting,Setting Value
+SRV-TEST-01,System,Audit Credential Validation,{0cce923f-69ae-11d9-bed3-505054503030},Success and Failure,,3
+SRV-TEST-01,System,Audit Logon,{0cce9215-69ae-11d9-bed3-505054503030},Success,,1
+SRV-TEST-01,System,Audit Account Lockout,{0cce9217-69ae-11d9-bed3-505054503030},Failure,,2
+SRV-TEST-01,System,Audit Process Creation,{0cce922b-69ae-11d9-bed3-505054503030},No Auditing,,0
+,,Option:CrashOnAuditFail,,Disabled,,0
+,,FileGlobalSacl,,,,
