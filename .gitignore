@@ -1,6 +1,10 @@
-# Generated outputs — do not commit
+# Build and test output
+out/
+
+# Toolkit output when -OutputPath points into the repository
 reports/
 logs/
+sessions/
 backups/
 
 # OS

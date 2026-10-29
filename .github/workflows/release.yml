@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module -Name Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Test
+        shell: pwsh
+        run: ./build.ps1 -Task Test -CI
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $version = (Import-PowerShellDataFile -Path src/WindowsServerHardening/WindowsServerHardening.psd1).ModuleVersion
+          if ("v$version" -ne $env:GITHUB_REF_NAME) {
+              throw "Tag $env:GITHUB_REF_NAME does not match the module version $version."
+          }
+          New-Item -ItemType Directory -Path out/package -Force | Out-Null
+          Copy-Item -Path src/WindowsServerHardening -Destination out/package -Recurse
+          Copy-Item -Path Harden-WindowsServer.ps1, README.md, LICENSE, CHANGELOG.md -Destination out/package
+          Compress-Archive -Path out/package/* -DestinationPath "out/WindowsServerHardening-$version.zip"
+          $hash = (Get-FileHash -Path "out/WindowsServerHardening-$version.zip" -Algorithm SHA256).Hash
+          "$hash  WindowsServerHardening-$version.zip" | Set-Content -Path "out/WindowsServerHardening-$version.zip.sha256"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.zip
+            out/*.sha256
+          generate_release_notes: true

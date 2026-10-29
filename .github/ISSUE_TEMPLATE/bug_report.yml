@@ -1,0 +1,52 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. For security vulnerabilities, use the private reporting described in SECURITY.md instead.
+  - type: input
+    id: version
+    attributes:
+      label: Toolkit version
+      description: Output of `(Get-Module WindowsServerHardening).Version`
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and role
+      placeholder: Windows Server 2022 Datacenter, member server
+    validations:
+      required: true
+  - type: dropdown
+    id: powershell
+    attributes:
+      label: PowerShell edition
+      options:
+        - Windows PowerShell 5.1
+        - PowerShell 7.x
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command that was run
+      render: powershell
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Include the affected control IDs and the relevant lines from the session log (`%ProgramData%\WindowsServerHardening\logs`). Remove host names and other sensitive details.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true

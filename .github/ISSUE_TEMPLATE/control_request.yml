@@ -1,0 +1,31 @@
+name: Control request
+description: Propose a new hardening control or a change to an existing one
+labels: [control]
+body:
+  - type: input
+    id: setting
+    attributes:
+      label: Setting
+      description: Group Policy path or registry value, service, audit subcategory, ...
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: Recommended value
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale and references
+      description: Why it matters, with a CIS recommendation title, Microsoft guidance or MITRE ATT&CK technique.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Operational impact
+      description: What could break, and whether the control should be opt-in.
+    validations:
+      required: true
