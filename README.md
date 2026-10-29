@@ -25,6 +25,17 @@ Undo-HardeningRemediation               # restore the previous configuration
   <a href="docs/COMPATIBILITY.md"><b>Compatibility</b></a>
 </p>
 
+<p align="center">
+  <a href="https://anastanveer653.github.io/windows-server-hardening-toolkit/docs/sample-report.html">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/images/report-dark.png">
+      <img src="docs/images/report-light.png" width="900" alt="HTML report with the security score, results by status, open findings by severity and compliance by category">
+    </picture>
+  </a>
+  <br>
+  <sub>The self-contained HTML report (sample data). Select the image to open the interactive version.</sub>
+</p>
+
 ---
 
 ## Why this toolkit
@@ -102,20 +113,20 @@ cd windows-server-hardening-toolkit
 Sample console output:
 
 ```
-  Windows Server Hardening Toolkit v2.0.0
+  Windows Server Hardening Toolkit v2.0.1
   ------------------------------------------------------------------
   Mode      : AUDIT (read-only)
   Computer  : SRV-APP-01 (MemberServer, Microsoft Windows Server 2022 Datacenter build 20348)
   Profile   : MemberServer
   Session   : 20261029-093000-5a3c1e
   ------------------------------------------------------------------
-  Score     : 64 / 100   Grade D
-  Results   : 63 compliant  0 remediated  32 non-compliant  1 errors  7 n/a
+  Score     : 65 / 100   Grade D
+  Results   : 62 compliant  0 remediated  27 non-compliant  5 errors  9 n/a
 
   Top open findings
    [Critical] AUTH-001  LAN Manager authentication level is NTLMv2 only
-   [Critical] FW-001    Windows Firewall is enabled on all profiles
-   [High]     ACCT-006  Passwords are not stored using reversible encryption
+   [High]     AUTH-002  LAN Manager password hashes are not stored
+   [High]     AUTH-004  LSASS runs as a protected process (RunAsPPL)
    ...
 ```
 
