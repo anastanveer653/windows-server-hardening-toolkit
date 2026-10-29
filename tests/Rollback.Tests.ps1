@@ -26,7 +26,7 @@ InModuleScope WindowsServerHardening {
             $run = Invoke-HardeningRun -Mode Remediate -Controls $controls -ProfileData ([ordered]@{ Name = 'Test'; Parameters = [ordered]@{} }) `
                 -SystemInfo (New-TestSystemInfo) -Session $session -Cmdlet (New-TestCmdlet)
             $session.Status = 'Completed'
-            Save-HardeningSessionMetadata -Session $session
+            Save-HardeningSessionInfo -Session $session
         }
 
         It 'remediates the non-compliant settings and leaves compliant ones alone' {

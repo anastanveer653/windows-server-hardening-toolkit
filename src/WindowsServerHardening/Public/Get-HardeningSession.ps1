@@ -42,7 +42,7 @@ function Get-HardeningSession {
 
     foreach ($folder in @(Get-ChildItem -LiteralPath $directory -Directory | Sort-Object -Property Name -Descending)) {
         if ($Id -and $folder.Name -notlike $Id) { continue }
-        $metadata = Read-HardeningSessionMetadata -SessionPath $folder.FullName
+        $metadata = Read-HardeningSessionInfo -SessionPath $folder.FullName
         if ($null -eq $metadata) { continue }
 
         [pscustomobject]@{

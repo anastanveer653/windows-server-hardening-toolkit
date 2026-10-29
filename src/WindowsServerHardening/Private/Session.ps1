@@ -50,13 +50,13 @@ function New-HardeningSession {
     }
 
     if ($Mode -eq 'Remediate') {
-        Save-HardeningSessionMetadata -Session $session
+        Save-HardeningSessionInfo -Session $session
     }
     Write-HardeningLog -Message "Session $id started (mode: $Mode, profile: $ProfileName, computer: $env:COMPUTERNAME, toolkit: $script:ModuleVersion)."
     return $session
 }
 
-function Save-HardeningSessionMetadata {
+function Save-HardeningSessionInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -111,7 +111,7 @@ function Add-HardeningChange {
 
     $line = ConvertTo-Json -InputObject $record -Depth 8 -Compress
     Write-HardeningTextFile -Path $Session.ChangesPath -Content ($line + [Environment]::NewLine) -Append
-    Save-HardeningSessionMetadata -Session $Session
+    Save-HardeningSessionInfo -Session $Session
 }
 
 function Read-HardeningChange {
@@ -132,7 +132,7 @@ function Read-HardeningChange {
     }
 }
 
-function Read-HardeningSessionMetadata {
+function Read-HardeningSessionInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -146,7 +146,7 @@ function Read-HardeningSessionMetadata {
     return ConvertTo-HashtableDeep -InputObject (ConvertFrom-Json -InputObject ([System.IO.File]::ReadAllText($file)))
 }
 
-function Update-HardeningSessionMetadata {
+function Update-HardeningSessionInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -156,7 +156,7 @@ function Update-HardeningSessionMetadata {
         [hashtable]$Values
     )
 
-    $metadata = Read-HardeningSessionMetadata -SessionPath $SessionPath
+    $metadata = Read-HardeningSessionInfo -SessionPath $SessionPath
     if ($null -eq $metadata) {
         throw "Session metadata not found in '$SessionPath'."
     }

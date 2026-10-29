@@ -114,7 +114,7 @@ function Invoke-HardeningRemediation {
     }
     finally {
         $session.EndTime = Get-Date
-        Save-HardeningSessionMetadata -Session $session
+        Save-HardeningSessionInfo -Session $session
     }
 
     if ($session.ChangeCount -gt 0) {

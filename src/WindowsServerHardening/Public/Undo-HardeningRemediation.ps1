@@ -126,7 +126,7 @@ function Undo-HardeningRemediation {
         else {
             $values.Status = 'RollbackIncomplete'
         }
-        Update-HardeningSessionMetadata -SessionPath $target.Path -Values $values
+        Update-HardeningSessionInfo -SessionPath $target.Path -Values $values
         Write-HardeningLog -Message "Rollback of session $($target.Id) finished with $failed failure(s)."
     }
 }
