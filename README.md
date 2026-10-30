@@ -87,7 +87,7 @@ Version-specific behaviour is described in [docs/COMPATIBILITY.md](docs/COMPATIB
 |---|---|---|
 | 2025 Datacenter (build 26100), PowerShell 5.1 and 7 | Audit, harden, verify, idempotency, rollback | 12/12 checks; score 46 -> **95** -> 46 after rollback |
 | 2022 Datacenter (build 20348), PowerShell 5.1 and 7 | Audit, harden, verify, idempotency, rollback | 12/12 checks; score 47 -> **95** -> 47 after rollback |
-| 2016 Standard (build 14393, .NET 4.6.2), production member server | Audit only | 102 controls evaluated, **0 errors** |
+| 2016 Standard (build 14393, .NET 4.6.2) | Audit only | 102 controls evaluated, **0 errors** |
 
 Windows Server 2022 and 2025 are retested by CI on every push.
 
