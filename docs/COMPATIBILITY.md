@@ -10,7 +10,7 @@ PowerShell 7, with Desktop Experience or Server Core, and on any display languag
 | 2025 | 26100 | 5.1 | 4.8.1 | Nothing | CI on every push: unit tests and the full audit, harden and rollback lifecycle, on PowerShell 5.1 and 7 |
 | 2022 | 20348 | 5.1 | 4.8 | Nothing | CI on every push: unit tests and the full lifecycle, on PowerShell 5.1 and 7 |
 | 2019 | 17763 | 5.1 | 4.7.2 | Nothing | [Integration test](#verify-a-server-yourself) on a VM |
-| 2016 | 14393 | 5.1 | 4.6.2 | Nothing | **Audit verified on a production server** ([details](#verification-log)); hardening and rollback: [integration test](#verify-a-server-yourself) on a VM |
+| 2016 | 14393 | 5.1 | 4.6.2 | Nothing | **Audit verified on a real server** ([details](#verification-log)); hardening and rollback: [integration test](#verify-a-server-yourself) on a VM |
 | 2012 R2 | 9600 | 4.0 | 4.5.1 | [WMF 5.1](https://aka.ms/wmf51download), which needs .NET 4.5.2 or later | [Integration test](#verify-a-server-yourself) on a VM |
 | 2012 | 9200 | 3.0 | 4.5 | [WMF 5.1](https://aka.ms/wmf51download), which needs .NET 4.5.2 or later | [Integration test](#verify-a-server-yourself) on a VM |
 
@@ -105,12 +105,12 @@ Results of the integration test on real servers (host names omitted):
 
 | Date | Windows Server | Build | PowerShell | .NET | Mode | Result |
 |---|---|---|---|---|---|---|
-| 2026-10-29 | 2016 Standard (production member server) | 14393 | 5.1.14393 | 4.6.2 (394802) | Audit only | 3/3 checks passed; 102 controls evaluated, 0 errors (24 compliant, 73 non-compliant, 5 not applicable) |
+| 2026-10-29 | 2016 Standard (on-premises) | 14393 | 5.1.14393 | 4.6.2 (394802) | Audit only | 3/3 checks passed; 102 controls evaluated, 0 errors |
 | 2026-10-29 | 2022 Datacenter (GitHub runner) | 20348 | 5.1.20348 | 4.8 | Full lifecycle | 12/12 checks passed; score 47 -> 95 after hardening -> 47 after rollback; 51 changes, 51 restored |
 | 2026-10-29 | 2022 Datacenter (GitHub runner) | 20348 | 7.6.9 | - | Full lifecycle | 12/12 checks passed; score 47 -> 95 -> 47; 51 changes, 51 restored |
 | 2026-10-29 | 2025 Datacenter (GitHub runner) | 26100 | 5.1.26100 | 4.8.1 | Full lifecycle | 12/12 checks passed; score 46 -> 95 -> 46; 53 changes, 53 restored |
 | 2026-10-29 | 2025 Datacenter (GitHub runner) | 26100 | 7.6.7 | - | Full lifecycle | 12/12 checks passed; score 46 -> 95 -> 46; 53 changes, 53 restored |
 
-Hardening and rollback were deliberately not run on the production server. CI repeats the full
+Hardening and rollback were deliberately not run on that server. CI repeats the full
 lifecycle on Windows Server 2022 and 2025 for every push; the evidence files are attached to each CI
 run as artifacts. Older releases are verified on VMs.
